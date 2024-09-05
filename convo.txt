@@ -1,25 +1,47 @@
 building gradually
 
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "rds:DescribeDBInstances",
-                "rds:DescribeDBProxies",
-                "rds:DescribeDBProxyTargets"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "rds-db:connect"
-            ],
-            "Resource": [
-                "arn:aws:rds-db:<region>:<account-id>:dbuser:<db-instance-id>/<username>"
-            ]
-        }
+resource "aws_iam_policy" "rds_least_privilege_policy" {
+  name        = "rds-least-privilege-policy"
+  description = "Least privileged policy for accessing specific RDS instance"
+  policy      = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "rds-db:connect"
+        ],
+        "Resource" : [
+          "arn:aws:rds-db:${var.region}:${var.account_id}:dbuser:${var.db_instance_id}/${var.db_username}"
+        ]
+      }
     ]
+  })
+}
+
+# Attach the policy to the EC2 instance role
+resource "aws_iam_role_policy_attachment" "ec2_attach_rds_policy" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = aws_iam_policy.rds_least_privilege_policy.arn
+}
+
+# Variables for dynamic resource configuration
+variable "region" {
+  description = "AWS region where RDS is located"
+  type        = string
+}
+
+variable "account_id" {
+  description = "AWS account ID"
+  type        = string
+}
+
+variable "db_instance_id" {
+  description = "RDS instance ID"
+  type        = string
+}
+
+variable "db_username" {
+  description = "Username for the RDS instance"
+  type        = string
 }
